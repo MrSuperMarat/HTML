@@ -18,7 +18,6 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-from pprint import pprint
 import pandas as pd
 import json
 
@@ -26,16 +25,16 @@ headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '
                          'AppleWebKit/537.36 (KHTML, like Gecko)'
                          ' Chrome/103.0.0.0 Safari/537.36'}
 
+session = requests.Session()
+
+vacancies_list = []
+
+params = {'page': 0}
+
 url = ('https://hh.ru/search/vacancy?area=113&search_field='
        'name&search_field=company_name&search_field=descrip'
        'tion&text=инженер&hhtmFrom=vacancy_search_catalog'
        '&items_on_page=20')
-
-params = {'page': 0}
-
-session = requests.Session()
-
-vacancies_list = []
 
 response = session.get(url, headers=headers, params=params)
 
@@ -93,7 +92,7 @@ while True:
         vacancy_data['link'] = link
         vacancy_data['website'] = 'hh.ru'
         vacancy_data['employer'] = employer
-        vacancy_data['location'] = location
+        vacancy_data['location'] = location.replace('\xa0', ' ')
         vacancies_list.append(vacancy_data)
     params['page'] += 1
 
