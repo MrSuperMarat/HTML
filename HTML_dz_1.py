@@ -14,7 +14,7 @@ repos = [j_data[i]['name'] for i in range(len(j_data))]
 print(repos)
 
 with open('repos.json', 'w', encoding='UTF-8') as f:
-    json.dump(repos, f)
+    json.dump(j_data, f)
 
 # 2. Изучить список открытых API
 # (https://www.programmableweb.com/category/all/apis). Найти среди
