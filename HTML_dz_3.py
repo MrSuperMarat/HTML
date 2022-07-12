@@ -36,16 +36,16 @@ url = ('https://hh.ru/search/vacancy?area=113&search_field='
        'tion&text=инженер&hhtmFrom=vacancy_search_catalog'
        '&items_on_page=20')
 
-
 response = session.get(url, headers=headers, params=params)
 
 dom = BeautifulSoup(response.text, 'html.parser')
 
 vacancies = dom.find_all('div', {'class': 'vacancy-serp-item'})
 
-RE_SALARY_FROM = re.compile(r'от ((?:\d{,3}.+)+) (руб)')
-RE_SALARY_TO = re.compile(r'до ((?:\d{,3}.+)+) (руб)')
-RE_SALARY = re.compile(r'((?:\d{,3}.+)+) – ((?:\d{,3}.+)+) (руб)')
+RE_SALARY_FROM = re.compile(r'от ((?:\d{,3}.+)+) ([а-яёA-Z]+)')
+RE_SALARY_TO = re.compile(r'до ((?:\d{,3}.+)+) ([а-яёA-Z]+)')
+RE_SALARY = re.compile(r'((?:\d{,3}.+)+) – ((?:\d{,3}.+)+) '
+                       r'([а-яёA-Z]+)')
 
 while True:
     response = session.get(url, headers=headers, params=params)
@@ -70,32 +70,27 @@ while True:
             for_salary2 = for_salary.text
             if 'от' in for_salary2:
                 sal_str = RE_SALARY_FROM.findall(for_salary2)
-                vacancy_data['salary_min'] = int(
-                    sal_str[0][0].replace('\u202f', ''))
-                vacancy_data['salary_max'] = None
-                vacancy_data['salary_val'] = sal_str[0][1]
+                vacancy_data['salary'] = [
+                    int(sal_str[0][0].replace('\u202f', '')
+                        ), None, sal_str[0][1]]
             elif 'до' in for_salary2:
                 sal_str = RE_SALARY_TO.findall(for_salary2)
-                vacancy_data['salary_min'] = None
-                vacancy_data['salary_max'] = int(
-                    sal_str[0][0].replace('\u202f', ''))
-                vacancy_data['salary_val'] = sal_str[0][1]
+                vacancy_data['salary'] = [
+                    None, int(sal_str[0][0].replace(
+                        '\u202f', '')), sal_str[0][1]]
             else:
                 sal_str = RE_SALARY.findall(for_salary2)
-                vacancy_data['salary_min'] = int(
-                    sal_str[0][0].replace('\u202f', ''))
-                vacancy_data['salary_max'] = int(
-                    sal_str[0][1].replace('\u202f', ''))
-                vacancy_data['salary_val'] = sal_str[0][2]
-        except:
-            vacancy_data['salary_min'] = None
-            vacancy_data['salary_max'] = None
-            vacancy_data['salary_val'] = None
+                vacancy_data['salary'] = [
+                    int(sal_str[0][0].replace('\u202f', '')
+                        ), int(sal_str[0][1].replace(
+                         '\u202f', '')), sal_str[0][2]]
+        except AttributeError:
+            vacancy_data['salary'] = [None, None, None]
         vacancy_data['name'] = name
         vacancy_data['link'] = link
         vacancy_data['website'] = 'hh.ru'
         vacancy_data['employer'] = employer
-        vacancy_data['location'] = location
+        vacancy_data['location'] = location.replace('\xa0', ' ')
         vacancies_list.append(vacancy_data)
     params['page'] += 1
 
@@ -103,15 +98,21 @@ url2 = ('https://www.superjob.ru/vakansii/'
         'razrabotchik.html?geo%5Bt%5D%5B0%5D=4')
 
 RE_SALARY2 = re.compile(r'((?:\d{,3}\xa0{1})+)—('
-                        r'(?:\d{,3}\xa0{1})+)(руб)')
-RE_SALARY_FROM2 = re.compile(r'от\xa0((?:\d{,3}\xa0{1})+)(руб)')
-RE_SALARY_TO2 = re.compile(r'до\xa0((?:\d{,3}\xa0{1})+)(руб)')
-RE_SALARY_EQ = re.compile(r'((?:\d{,3}\xa0{1})+)(руб)')
+                        r'(?:\d{,3}\xa0{1})+)([а-яёA-Z]+)')
+RE_SALARY_FROM2 = re.compile(r'от\xa0((?:\d{,3}\xa0{1})+)'
+                             r'([а-яёA-Z]+)')
+RE_SALARY_TO2 = re.compile(r'до\xa0((?:\d{,3}\xa0{1})+)'
+                           r'([а-яёA-Z]+)')
+RE_SALARY_EQ = re.compile(r'((?:\d{,3}\xa0{1})+)'
+                          r'([а-яёA-Z]+)')
 
 response2 = session.get(url2, headers=headers)
 dom2 = BeautifulSoup(response2.text, 'html.parser')
 
-last_page = int(dom2.select('a.f-test-button-11')[0].text)
+for_last = dom2.find('div', {
+    'class': '_2J3hU _9mI07 X7CI7 _23dTG _2qI_V _14MSf _2aTVo'})
+last_page = int(for_last.select('a.f-test-button-dalshe'
+                                )[0].previous_sibling.text)
 
 for i in range(1, last_page + 1):
     params['page'] = i
@@ -135,34 +136,28 @@ for i in range(1, last_page + 1):
                                   ).text
         if 'от' in for_salary:
             sal_str = RE_SALARY_FROM2.findall(for_salary)
-            vacancy_data['salary_min'] = int(
-                sal_str[0][0].replace('\xa0', ''))
-            vacancy_data['salary_max'] = None
-            vacancy_data['salary_val'] = sal_str[0][1]
+            vacancy_data['salary'] = [int(
+                sal_str[0][0].replace('\xa0', '')
+            ), None, sal_str[0][1]]
         elif 'до\xa0' in for_salary:
             sal_str = RE_SALARY_TO2.findall(for_salary)
-            vacancy_data['salary_min'] = None
-            vacancy_data['salary_max'] = int(
-                sal_str[0][0].replace('\xa0', ''))
-            vacancy_data['salary_val'] = sal_str[0][1]
+            vacancy_data['salary'] = [None, int(
+                sal_str[0][0].replace('\xa0', '')
+            ), sal_str[0][1]]
         elif '—' in for_salary:
             sal_str = RE_SALARY2.findall(for_salary)
-            vacancy_data['salary_min'] = int(
-                sal_str[0][0].replace('\xa0', ''))
-            vacancy_data['salary_max'] = int(
-                sal_str[0][1].replace('\xa0', ''))
-            vacancy_data['salary_val'] = sal_str[0][2]
+            vacancy_data['salary'] = [
+                int(sal_str[0][0].replace('\xa0', '')
+                    ), int(sal_str[0][1].replace(
+                     '\xa0', '')), sal_str[0][2]]
         elif 'По' in for_salary:
-            vacancy_data['salary_min'] = None
-            vacancy_data['salary_max'] = None
-            vacancy_data['salary_val'] = None
+            vacancy_data['salary'] = [None, None, None]
         else:
             sal_str = RE_SALARY_EQ.findall(for_salary)
-            vacancy_data['salary_min'] = int(
-                sal_str[0][0].replace('\xa0', ''))
-            vacancy_data['salary_max'] = int(
-                sal_str[0][0].replace('\xa0', ''))
-            vacancy_data['salary_val'] = sal_str[0][1]
+            vacancy_data['salary'] = [int(
+                sal_str[0][0].replace('\xa0', '')
+            ), int(sal_str[0][0].replace('\xa0', '')
+                   ), sal_str[0][1]]
         try:
             employer = vacancy.find('div', {
                 'class', '_2J3hU _3_tYT LLSBE MgbFi'
@@ -171,7 +166,7 @@ for i in range(1, last_page + 1):
                          '-item-company-name MjtUU '
                          '_21QHd _36Ys4 _9Is4f _39z8N'
             }).find('a').text
-        except:
+        except AttributeError:
             employer = None
         location = vacancy.find('span', {
             'class': 'f-test-text-company-item-location '
@@ -180,7 +175,7 @@ for i in range(1, last_page + 1):
         vacancy_data['link'] = link
         vacancy_data['website'] = 'superjob.ru'
         vacancy_data['employer'] = employer
-        vacancy_data['location'] = location.replace('\xa0', ' ')
+        vacancy_data['location'] = location
         vacancies_list.append(vacancy_data)
 
 # 1. Развернуть у себя на компьютере/виртуальной машине/хостинге
@@ -221,3 +216,5 @@ def more(x):
 more(100000)
 
 m_vacancies.delete_many({})
+
+client.close()
