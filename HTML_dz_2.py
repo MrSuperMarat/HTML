@@ -42,9 +42,10 @@ dom = BeautifulSoup(response.text, 'html.parser')
 
 vacancies = dom.find_all('div', {'class': 'vacancy-serp-item'})
 
-RE_SALARY_FROM = re.compile(r'от ((?:\d{,3}.+)+) (руб)')
-RE_SALARY_TO = re.compile(r'до ((?:\d{,3}.+)+) (руб)')
-RE_SALARY = re.compile(r'((?:\d{,3}.+)+) – ((?:\d{,3}.+)+) (руб)')
+RE_SALARY_FROM = re.compile(r'от ((?:\d{,3}.+)+) ([а-яёA-Z]+)')
+RE_SALARY_TO = re.compile(r'до ((?:\d{,3}.+)+) ([а-яёA-Z]+)')
+RE_SALARY = re.compile(r'((?:\d{,3}.+)+) – ((?:\d{,3}.+)+) '
+                       r'([а-яёA-Z]+)')
 
 # last_page = int(dom.find('span', {
 #     'data-qa': 'pager-page-wrapper-100-99'}).text)
@@ -86,7 +87,7 @@ while True:
                     int(sal_str[0][0].replace('\u202f', '')
                         ), int(sal_str[0][1].replace(
                          '\u202f', '')), sal_str[0][2]]
-        except:
+        except AttributeError:
             vacancy_data['salary'] = [None, None, None]
         vacancy_data['name'] = name
         vacancy_data['link'] = link
@@ -100,20 +101,21 @@ url2 = ('https://www.superjob.ru/vakansii/'
         'razrabotchik.html?geo%5Bt%5D%5B0%5D=4')
 
 RE_SALARY2 = re.compile(r'((?:\d{,3}\xa0{1})+)—('
-                        r'(?:\d{,3}\xa0{1})+)(руб)')
-RE_SALARY_FROM2 = re.compile(r'от\xa0((?:\d{,3}\xa0{1})+)(руб)')
-RE_SALARY_TO2 = re.compile(r'до\xa0((?:\d{,3}\xa0{1})+)(руб)')
-RE_SALARY_EQ = re.compile(r'((?:\d{,3}\xa0{1})+)(руб)')
+                        r'(?:\d{,3}\xa0{1})+)([а-яёA-Z]+)')
+RE_SALARY_FROM2 = re.compile(r'от\xa0((?:\d{,3}\xa0{1})+)'
+                             r'([а-яёA-Z]+)')
+RE_SALARY_TO2 = re.compile(r'до\xa0((?:\d{,3}\xa0{1})+)'
+                           r'([а-яёA-Z]+)')
+RE_SALARY_EQ = re.compile(r'((?:\d{,3}\xa0{1})+)'
+                          r'([а-яёA-Z]+)')
 
 response2 = session.get(url2, headers=headers)
 dom2 = BeautifulSoup(response2.text, 'html.parser')
 
-# last_page = dom2.find('a', {
-#     'class': '_1IHWd _6Nb0L _37aW8 _3187U '
-#              'f-test-button-11 f-test-link-11'})
-# last_page = int(dom2.select('a.f-test-button-11.'
-#                             'f-test-link-11')[0].text)
-last_page = int(dom2.select('a.f-test-button-11')[0].text)
+for_last = dom2.find('div', {
+    'class': '_2J3hU _9mI07 X7CI7 _23dTG _2qI_V _14MSf _2aTVo'})
+last_page = int(for_last.select('a.f-test-button-dalshe'
+                                )[0].previous_sibling.text)
 
 for i in range(1, last_page + 1):
     params['page'] = i
@@ -167,7 +169,7 @@ for i in range(1, last_page + 1):
                          '-item-company-name MjtUU '
                          '_21QHd _36Ys4 _9Is4f _39z8N'
             }).find('a').text
-        except:
+        except AttributeError:
             employer = None
         location = vacancy.find('span', {
             'class': 'f-test-text-company-item-location '
