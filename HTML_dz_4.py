@@ -97,8 +97,7 @@ db = client['users0807']
 
 m_news = db.m_news
 
-for i in news_list:
-    m_news.insert_one(i)
+m_news.insert_many(news_list)
 
 [pprint(i) for i in m_news.find({})]
 
