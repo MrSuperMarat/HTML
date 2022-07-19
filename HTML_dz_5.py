@@ -114,7 +114,7 @@ driver.get('https://www.mvideo.ru')
 while True:
     try:
         button = driver.find_element(
-            By.XPATH, "//button[@class='tab-button ng-star-inserted']")
+            By.XPATH, "//span[contains(text(), 'В тренде')]/../..")
         button.click()
         break
     except NoSuchElementException:
@@ -153,4 +153,5 @@ for i in range(len(names)):
 
 m_products.delete_many({})
 
+driver.close()
 client.close()
