@@ -40,12 +40,17 @@ response = session.get(url, headers=headers, params=params)
 
 dom = BeautifulSoup(response.text, 'html.parser')
 
-vacancies = dom.find_all('div', {'class': 'vacancy-serp-item'})
+vacancies = dom.find_all('div', {'class': 'vacancy-serp-item-body'})
 
-RE_SALARY_FROM = re.compile(r'от ((?:\d{,3}.+)+) ([а-яёA-Z]+)')
-RE_SALARY_TO = re.compile(r'до ((?:\d{,3}.+)+) ([а-яёA-Z]+)')
-RE_SALARY = re.compile(r'((?:\d{,3}.+)+) – ((?:\d{,3}.+)+) '
-                       r'([а-яёA-Z]+)')
+print(vacancies)
+
+RE_SALARY_FROM = re.compile(r'от (\d+) ([а-яёA-Z]+)')
+RE_SALARY_TO = re.compile(r'до (\d+) ([а-яёA-Z]+)')
+RE_SALARY = re.compile(r'(\d+) – (\d+) ([а-яёA-Z]+)')
+# RE_SALARY_FROM = re.compile(r'от ((?:\d{,3}.+)+) ([а-яёA-Z]+)')
+# RE_SALARY_TO = re.compile(r'до ((?:\d{,3}.+)+) ([а-яёA-Z]+)')
+# RE_SALARY = re.compile(r'((?:\d{,3}.+)+) – ((?:\d{,3}.+)+) '
+#                        r'([а-яёA-Z]+)')
 
 # last_page = int(dom.find('span', {
 #     'data-qa': 'pager-page-wrapper-100-99'}).text)
@@ -53,8 +58,8 @@ RE_SALARY = re.compile(r'((?:\d{,3}.+)+) – ((?:\d{,3}.+)+) '
 while True:
     response = session.get(url, headers=headers, params=params)
     dom = BeautifulSoup(response.text, 'html.parser')
-    vacancies = dom.find_all('div', {'class': 'vacancy-serp-item'})
-    if len(vacancies) == 0 or response == '<Response [400]>':
+    vacancies = dom.find_all('div', {'class': 'vacancy-serp-item-body'})
+    if len(vacancies) == 0 or response.status_code == 404:
         break
     for vacancy in vacancies:
         vacancy_data = {}
@@ -70,23 +75,36 @@ while True:
             'data-qa': 'vacancy-serp__vacancy-address'}).text
         location = for_location.replace('\xa0', ' ')
         try:
-            for_salary2 = for_salary.text
+            for_salary2 = for_salary.text.replace('\u202f', '')
             if 'от' in for_salary2:
                 sal_str = RE_SALARY_FROM.findall(for_salary2)
-                vacancy_data['salary'] = [
-                    int(sal_str[0][0].replace('\u202f', '')
-                        ), None, sal_str[0][1]]
+                vacancy_data['salary'] = [int(sal_str[0][0]),
+                                          None, sal_str[0][1]]
             elif 'до' in for_salary2:
                 sal_str = RE_SALARY_TO.findall(for_salary2)
-                vacancy_data['salary'] = [
-                    None, int(sal_str[0][0].replace(
-                        '\u202f', '')), sal_str[0][1]]
+                vacancy_data['salary'] = [None, int(sal_str[0][0]),
+                                          sal_str[0][1]]
             else:
                 sal_str = RE_SALARY.findall(for_salary2)
-                vacancy_data['salary'] = [
-                    int(sal_str[0][0].replace('\u202f', '')
-                        ), int(sal_str[0][1].replace(
-                         '\u202f', '')), sal_str[0][2]]
+                vacancy_data['salary'] = [int(sal_str[0][0]), int(
+                    sal_str[0][1]), sal_str[0][2]]
+#             for_salary2 = for_salary.text
+#             if 'от' in for_salary2:
+#                 sal_str = RE_SALARY_FROM.findall(for_salary2)
+#                 vacancy_data['salary'] = [
+#                     int(sal_str[0][0].replace('\u202f', '')
+#                         ), None, sal_str[0][1]]
+#             elif 'до' in for_salary2:
+#                 sal_str = RE_SALARY_TO.findall(for_salary2)
+#                 vacancy_data['salary'] = [
+#                     None, int(sal_str[0][0].replace(
+#                         '\u202f', '')), sal_str[0][1]]
+#             else:
+#                 sal_str = RE_SALARY.findall(for_salary2)
+#                 vacancy_data['salary'] = [
+#                     int(sal_str[0][0].replace('\u202f', '')
+#                         ), int(sal_str[0][1].replace(
+#                          '\u202f', '')), sal_str[0][2]]
         except AttributeError:
             vacancy_data['salary'] = [None, None, None]
         vacancy_data['name'] = name
